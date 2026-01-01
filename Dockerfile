@@ -8,25 +8,21 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy requirements first
+# Copy requirements first (Docker layer caching)
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy everything into /app
+# Copy the entire project (including manage.py and the pharm folder)
 COPY . .
 
-# CHANGE: Move into the folder where wsgi.py and manage.py actually live
-# Based on your screenshot, this is the 'pharm' directory
-WORKDIR /app/pharm
-
-# Run collectstatic from inside the 'pharm' folder
+# Run collectstatic from the root (where manage.py is)
 RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
-# Now Gunicorn can find 'wsgi.py' directly in the current directory
-CMD ["gunicorn", "wsgi:application", \
+# Tell Gunicorn to look inside 'pharm' to find 'wsgi.py'
+CMD ["gunicorn", "pharm.wsgi:application", \
      "--bind", "0.0.0.0:8000", \
      "--workers", "3", \
      "--timeout", "120"]
