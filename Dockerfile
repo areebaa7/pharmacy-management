@@ -21,7 +21,8 @@ RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
-CMD ["gunicorn", "pharmacy.wsgi:application", \
+# Updated the module name from 'pharmacy' to 'pharm'
+CMD ["gunicorn", "pharm.wsgi:application", \
      "--bind", "0.0.0.0:8000", \
      "--workers", "3", \
      "--timeout", "120"]
