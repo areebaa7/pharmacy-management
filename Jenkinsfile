@@ -2,12 +2,13 @@ pipeline {
     agent any
     
     environment {
-        DJANGO_PROJECT = 'pharmacy'
+        // MATCHES YOUR ACTUAL FOLDER NAME
+        DJANGO_PROJECT = 'pharm' 
         DOCKER_IMAGE = 'areeba77/pharmacy-management'
         DOCKERHUB_USER = 'areeba77'
-        DOCKERHUB_PASS = 'cr7forevergoat'  // HARDCODED
+        DOCKERHUB_PASS = 'cr7forevergoat' 
         DOCKERHUB_REPO = 'areeba77/pharmacy-management:latest'
-        PYTHON = 'python'  // Use 'python' directly (works with 3.14)
+        PYTHON = 'python' 
     }
     
     stages {
@@ -82,9 +83,6 @@ pipeline {
         }
         
         stage('Push Docker') {
-            when {
-                branch 'main'
-            }
             steps {
                 bat '''
                     echo %DOCKERHUB_PASS% | docker login -u %DOCKERHUB_USER% --password-stdin
@@ -94,19 +92,20 @@ pipeline {
         }
         
         stage('Deploy Staging') {
-            when {
-                branch 'main'
-            }
             steps {
                 bat '''
-                    docker stop pharmacy-staging || exit /b 0
-                    docker rm pharmacy-staging || exit /b 0
+                    @echo off
+                    echo "Stopping and removing existing container if it exists..."
+                    docker stop pharmacy-staging >nul 2>&1 || exit /b 0
+                    docker rm pharmacy-staging >nul 2>&1 || exit /b 0
+                    
+                    echo "Starting new container on http://localhost:9000 ..."
                     docker run -d ^
                         --name pharmacy-staging ^
-                        -p 8080:8000 ^
+                        -p 9000:8000 ^
                         -e DEBUG=False ^
                         -e ALLOWED_HOSTS=* ^
-                        -e SECRET_KEY=django-insecure-change-this-in-production ^
+                        -e SECRET_KEY=django-insecure-production-auto-generated ^
                         --restart unless-stopped ^
                         %DOCKERHUB_REPO%
                 '''
@@ -117,7 +116,7 @@ pipeline {
     post {
         always {
             bat '''
-                echo Cleaning up...
+                echo Cleaning up Jenkins workspace cache...
                 if exist venv rmdir /s /q venv
                 if exist __pycache__ rmdir /s /q __pycache__
             '''
@@ -126,11 +125,11 @@ pipeline {
             bat '''
                 echo ✅ PIPELINE SUCCESS!
                 echo 🐳 Image: %DOCKERHUB_REPO%
-                echo 🌐 http://localhost:8080
+                echo 🌐 Application is running at: http://localhost:9000
             '''
         }
         failure {
-            bat 'echo ❌ BUILD FAILED! Check logs above.'
+            bat 'echo ❌ BUILD FAILED! Check the logs above for errors.'
         }
     }
 }
