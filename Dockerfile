@@ -1,3 +1,4 @@
+# Dockerfile for Pharmacy Management Django App
 FROM python:3.11-slim
 
 # Install system dependencies
@@ -6,22 +7,26 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Set work directory
 WORKDIR /app
 
-# Copy requirements first (Docker layer caching)
+# Copy requirements first for Docker caching
 COPY requirements.txt .
+
+# Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy the entire project (including manage.py and the pharm folder)
+# Copy full project
 COPY . .
 
-# Run collectstatic from the root (where manage.py is)
+# Run Django collectstatic
 RUN python manage.py collectstatic --noinput
 
+# Expose Django port
 EXPOSE 8000
 
-# Tell Gunicorn to look inside 'pharm' to find 'wsgi.py'
+# Start Gunicorn server
 CMD ["gunicorn", "pharm.wsgi:application", \
      "--bind", "0.0.0.0:8000", \
      "--workers", "3", \
